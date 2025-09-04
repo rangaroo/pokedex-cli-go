@@ -1,63 +1,41 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"encoding/json"
 )
 
 func commandMap(config *config) error {
-	baseURL := "https://pokeapi.co/api/v2/location-area"
-
-	if config.Next != nil {
-		baseURL = *config.Next
-	}
-
-	res, err := http.Get(baseURL)
+	locationsResp, err := config.pokeapiClient.ListLocations(config.nextLocationsURL)
 	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
 		return err
 	}
 
-	locationArea := locationArea{}
+	config.nextLocationsURL = locationsResp.Next
+	config.prevLocationsURL = locationsResp.Previous
 
-	err = json.Unmarshal(body, &locationArea)
-	if err != nil {
-		log.Fatal(err)
-		return err
+	for _, loc := range locationsResp.Results {
+		fmt.Println(loc.Name)
 	}
-
-	for _, result := range locationArea.Results {
-		fmt.Println(result.Name)
-	}
-
-	fmt.Println()
-
-	config.Next = locationArea.Next
-	config.Previous = locationArea.Previous
-
 	return nil
 }
 
-type locationArea struct {
-	Count    int     `json:"count"`
-	Next     *string `json:"next"`
-	Previous *string `json:"previous"`
-	Results  []struct {
-		Name string `json:"name"`
-		URL  string `json:"url"`
-	} `json:"results"`
+func commandMapb(config *config) error {
+	if config.prevLocationsURL == nil {
+		return errors.New("Can't go back")
+	}
+	
+	locationsResp, err := config.pokeapiClient.ListLocations(config.prevLocationsURL)
+	if err != nil {
+		return err
+	}
+
+	config.nextLocationsURL = locationsResp.Next
+	config.prevLocationsURL = locationsResp.Previous
+
+	for _, loc := range locationsResp.Results {
+		fmt.Println(loc.Name)
+	}
+
+	return nil
 }
