@@ -3,7 +3,7 @@ package main
 import(
 	"time"
 
-	"github.com/rangaroo/pokexe-cli-go/internal"
+	"github.com/rangaroo/pokedex-cli-go/internal/pokeapi"
 )
 
 func main() {
