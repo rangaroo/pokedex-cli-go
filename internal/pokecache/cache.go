@@ -2,7 +2,7 @@ package pokecache
 
 import (
 	"sync"
-	"time
+	"time"
 )
 
 type cacheField struct {
@@ -10,29 +10,43 @@ type cacheField struct {
 	val        []byte
 }
 
-// TODO: Use RDMutex
 type Cache struct {
-	cache     map[string]cacheEntry
-	mu       sync.RDMutex
+	data          map[string]cacheField
+	mu            sync.RWMutex
+	interval      time.Duration
+	done          chan struct{}
+	ticker        *time.Ticker
 }
 
-func NewCache(interval time.Duration) Cache {
-	return Cache{
-		cache: map[string]cacheEntry{},
-		mu: sync.Mutex,
+func NewCache(interval time.Duration) *Cache {
+	cache := &Cache{
+		data: make(map[string]cacheField),
+		mu: sync.RWMutex{},
+		interval: interval,
+		done: make(chan struct{}),
+		ticker: time.NewTicker(interval),
 	}
+
+	go cache.reapLoop()
+
+	return cache
 }
 
-func (c Cache) Add(key string, val []byte) {
-	cacheField = cacheField{
+func (c *Cache) Add(key string, val []byte) {
+	cacheField := cacheField{
 		createdAt: time.Now(),
 		val: val,
 	}
-	c.cache[key] = cacheField
+
+	c.mu.Lock()
+	c.data[key] = cacheField
+	c.mu.Unlock()
 }
 
-func (c Cache) Get(key string) []byte, bool {
-	elem, exists := c.cache[key]
+func (c *Cache) Get(key string) ([]byte, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	elem, exists := c.data[key]
 
 	if exists {
 		return elem.val, true
@@ -41,9 +55,25 @@ func (c Cache) Get(key string) []byte, bool {
 	}
 }
 
+func (c *Cache) reap() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-func (c Cache) reapLoop(interval time.Duration) {
-	for key, elem:= range c.cache {
+	now := time.Now()
+	for key, val := range c.data {
+		if now.Sub(val.createdAt) > c.interval {
+			delete(c.data, key)
+		}
+	}
+}
 
+func (c *Cache) reapLoop() {
+	for {
+		select {
+			case <-c.done:
+				return
+			case <-c.ticker.C:
+				c.reap()
+		}
 	}
 }
