@@ -2,25 +2,25 @@ package main
 
 import (
 	"fmt"
+	"errors"
 )
 
-func commandExplore(config *config, arguments []string) error {
-	//TODO: Handle the case when arguments is empty
-	if (arguments == nil) {
-		return fmt.Errorf("Provide city name: 'explore <area_name>'")
+func commandExplore(config *config, args ...string) error {
+	if len(args) != 1 {
+		return errors.New("Provide location name")
 	}
 
-	cityName := arguments[0]
-	pokemonsResp, err := config.pokeapiClient.ListPokemons(cityName)
+	name := args[0]
+	location, err := config.pokeapiClient.GetLocation(name)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Exploring %s...\n", cityName)
+	fmt.Printf("Exploring %s...\n", location.Name)
 	fmt.Println("Found Pokemon:")
 
-	for _, p:= range pokemonsResp.PokemonEncounters {
-		fmt.Printf("- %s\n", p.Pokemon.Name)
+	for _, enc := range location.PokemonEncounters {
+		fmt.Printf(" - %s\n", enc.Pokemon.Name)
 	}
 	return nil
 }

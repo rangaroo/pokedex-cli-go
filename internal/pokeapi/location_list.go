@@ -38,54 +38,13 @@ func (c *Client) ListLocations(pageURL *string) (RespShallowLocations, error) {
 	if err != nil {
 		return RespShallowLocations{}, err
 	}
-		
-	c.cache.Add(url, dat)
 
 	locationsResp := RespShallowLocations{}
 	ok := json.Unmarshal(dat, &locationsResp)
 	if ok != nil {
 		return RespShallowLocations{}, ok
 	}
-	
-	return locationsResp, nil
-}
 
-func (c *Client) ListPokemons(city string) (RespExtendedLocations, error) {
-	url := baseURL + "/location-area/" + city
-	
-	// Check cache first
-	if val, ok := c.cache.Get(url); ok {
-		pokemonsResp := RespExtendedLocations{}
-		err := json.Unmarshal(val, &pokemonsResp) 
-		if err != nil {
-			return RespExtendedLocations{}, err
-		}
-		return pokemonsResp, nil
-	}
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return RespExtendedLocations{}, err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return RespExtendedLocations{}, err
-	}
-	defer resp.Body.Close()
-
-	dat, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return RespExtendedLocations{}, err
-	}
-		
 	c.cache.Add(url, dat)
-
-	pokemonsResp := RespExtendedLocations{}
-	ok := json.Unmarshal(dat, &pokemonsResp)
-	if ok != nil {
-		return RespExtendedLocations{}, ok
-	}
-	
-	return pokemonsResp, nil
+	return locationsResp, nil
 }
